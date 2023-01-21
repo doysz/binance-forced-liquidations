@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Binance Force Liquidations</title>
+    <style>
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      thead {
+        background-color: #f2f2f2;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+      tr:hover {
+        background-color: #f5f5f5;
+      }
+      th {
+        font-weight: bold;
+      }
+      td {
+        font-size: 14px;
+      }
+      h1 {
+        text-align: center;
+        margin-top: 30px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Binance Force Liquidations</h1>
+    <div style="display: flex">
+      <div style="flex: 1">
+        <h2>Below $1k Total</h2>
+        <table id="data-below-1k">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Price</th>
+              <th>Quantity</th>
+              <th>Total($)</th>
+              <th>Side</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody id="liquidations-below-1k"></tbody>
+        </table>
+      </div>
+      <div style="flex: 1">
+        <h2>Above $1k Total</h2>
+        <table id="data-above-1k">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Price</th>
+              <th>Quantity</th>
+              <th>Total($)</th>
+              <th>Side</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody id="liquidations-above-1k"></tbody>
+        </table>
+      </div>
+    </div>
+    <script>
+      const socket = new WebSocket(
+        "wss://fstream.binance.com/ws/!forceOrder@arr"
+      );
+      let forceLiquidations = [];
+      socket.onmessage = function (event) {
+        const data = JSON.parse(event.data);
+        forceLiquidations.unshift(data.o);
+        if (forceLiquidations.length > 30) {
+          forceLiquidations.pop();
+        }
+        let below1kHtml = "";
+        let above1kHtml = "";
+        for (const liquidation of forceLiquidations) {
+          const timestamp = new Date(liquidation.T);
+          const total = Math.floor(liquidation.p * liquidation.q);
+          if (total > 1000) {
+            above1kHtml += `<tr>
+<td>
+<a href="https://www.binance.com/en/trade/${
+              liquidation.s
+            }?layout=pro" target="_blank">${liquidation.s}</a>
+</td>
+<td>${liquidation.p}</td><td>${liquidation.q}</td><td>${total}</td><td>${
+              liquidation.S
+            }</td><td>${timestamp.toLocaleString()}</td></tr>`;
+          } else {
+            below1kHtml += `<tr>
+<td>
+<a href="https://www.binance.com/en/trade/${
+              liquidation.s
+            }?layout=pro" target="_blank">${liquidation.s}</a>
+</td>
+<td>${liquidation.p}</td><td>${liquidation.q}</td><td>${total}</td><td>${
+              liquidation.S
+            }</td><td>${timestamp.toLocaleString()}</td></tr>`;
+          }
+        }
+        document.getElementById("liquidations-below-1k").innerHTML =
+          below1kHtml;
+        document.getElementById("liquidations-above-1k").innerHTML =
+          above1kHtml;
+      };
+    </script>
+  </body>
+</html>
